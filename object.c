@@ -130,8 +130,59 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
         return 0;
     }
 
+    char hex[HASH_HEX_SIZE + 1];
+    char dir_path[512];
+    char final_path[512];
+    char temp_path[512];
+    hash_to_hex(id_out, hex);
+    snprintf(dir_path, sizeof(dir_path), "%s/%.2s", OBJECTS_DIR, hex);
+    object_path(id_out, final_path, sizeof(final_path));
+
+    size_t dir_len = strlen(dir_path);
+    if (dir_len + 32 >= sizeof(temp_path)) {
+        free(full);
+        return -1;
+    }
+    memcpy(temp_path, dir_path, dir_len);
+    snprintf(temp_path + dir_len, sizeof(temp_path) - dir_len, "/.tmp-%ld", (long)getpid());
+
+    if (mkdir(dir_path, 0755) != 0 && errno != EEXIST) {
+        free(full);
+        return -1;
+    }
+
+    int fd = open(temp_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd < 0) {
+        free(full);
+        return -1;
+    }
+
+    size_t written_total = 0;
+    while (written_total < full_len) {
+        ssize_t written = write(fd, full + written_total, full_len - written_total);
+        if (written < 0) {
+            close(fd);
+            unlink(temp_path);
+            free(full);
+            return -1;
+        }
+        written_total += (size_t)written;
+    }
+
+    if (fsync(fd) != 0 || close(fd) != 0 || rename(temp_path, final_path) != 0) {
+        unlink(temp_path);
+        free(full);
+        return -1;
+    }
+
+    int dir_fd = open(dir_path, O_RDONLY | O_DIRECTORY);
+    if (dir_fd >= 0) {
+        fsync(dir_fd);
+        close(dir_fd);
+    }
+
     free(full);
-    return -1;
+    return 0;
 }
 
 // Read an object from the store.
