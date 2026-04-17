@@ -105,7 +105,8 @@ static int write_tree_level(const Index *index, const char *prefix, ObjectID *id
             TreeEntry *entry = &tree.entries[tree.count++];
             entry->mode = index->entries[i].mode;
             entry->hash = index->entries[i].hash;
-            snprintf(entry->name, sizeof(entry->name), "%s", relative);
+            if (strlen(relative) >= sizeof(entry->name)) return -1;
+            memcpy(entry->name, relative, strlen(relative) + 1);
             continue;
         }
 
