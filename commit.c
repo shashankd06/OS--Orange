@@ -200,6 +200,10 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     if (tree_from_index(&commit.tree) != 0) return -1;
 
     commit.has_parent = (head_read(&commit.parent) == 0);
+    snprintf(commit.author, sizeof(commit.author), "%s", pes_author());
+    commit.timestamp = (uint64_t)time(NULL);
+    snprintf(commit.message, sizeof(commit.message), "%s", message);
+
     (void)commit_id_out;
     return -1;
 }
