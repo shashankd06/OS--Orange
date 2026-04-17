@@ -152,8 +152,15 @@ static int write_tree_level(const Index *index, const char *prefix, ObjectID *id
         return object_write(OBJ_TREE, "", 0, id_out);
     }
 
-    (void)id_out;
-    return -1;
+    void *data = NULL;
+    size_t len = 0;
+    if (tree_serialize(&tree, &data, &len) != 0) return -1;
+    if (object_write(OBJ_TREE, data, len, id_out) != 0) {
+        free(data);
+        return -1;
+    }
+    free(data);
+    return 0;
 }
 
 // Serialize a Tree struct into binary format for storage.
