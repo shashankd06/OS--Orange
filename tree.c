@@ -127,8 +127,33 @@ static int write_tree_level(const Index *index, const char *prefix, ObjectID *id
         seen_dir_count++;
     }
 
+    for (int i = 0; i < seen_dir_count; i++) {
+        char child_prefix[512];
+        ObjectID child_id;
+        size_t child_len = prefix_len + strlen(seen_dirs[i]) + 2;
+
+        if (child_len > sizeof(child_prefix)) return -1;
+        memcpy(child_prefix, prefix, prefix_len);
+        memcpy(child_prefix + prefix_len, seen_dirs[i], strlen(seen_dirs[i]));
+        child_prefix[child_len - 2] = '/';
+        child_prefix[child_len - 1] = '\0';
+
+        if (write_tree_level(index, child_prefix, &child_id) != 0) return -1;
+
+        if (tree.count >= MAX_TREE_ENTRIES) return -1;
+        TreeEntry *entry = &tree.entries[tree.count++];
+        entry->mode = MODE_DIR;
+        entry->hash = child_id;
+        if (strlen(seen_dirs[i]) >= sizeof(entry->name)) return -1;
+        memcpy(entry->name, seen_dirs[i], strlen(seen_dirs[i]) + 1);
+    }
+
+    if (tree.count == 0) {
+        return object_write(OBJ_TREE, "", 0, id_out);
+    }
+
     (void)id_out;
-    return 0;
+    return -1;
 }
 
 // Serialize a Tree struct into binary format for storage.
