@@ -15,7 +15,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <openssl/evp.h>
+#include <errno.h>
+
+typedef struct evp_md_ctx_st EVP_MD_CTX;
+typedef struct evp_md_st EVP_MD;
+
+EVP_MD_CTX *EVP_MD_CTX_new(void);
+void EVP_MD_CTX_free(EVP_MD_CTX *ctx);
+const EVP_MD *EVP_sha256(void);
+int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, void *impl);
+int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t len);
+int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s);
 
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
 
